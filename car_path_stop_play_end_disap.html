@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://preview.babylonjs.com/ammo.js"></script>
+        <script src="https://preview.babylonjs.com/cannon.js"></script>
+        <script src="https://preview.babylonjs.com/Oimo.js"></script>
+        <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+        <script src="https://preview.babylonjs.com/babylon.js"></script>
+        <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+    </head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var startRenderLoop = function (engine, canvas) {
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        }
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        var createScene = function() {
+          	var scene = new BABYLON.Scene(engine);
+        
+          	// camera
+         	 var camera = new BABYLON.ArcRotateCamera("camera1",  0, 0, 0, new BABYLON.Vector3(0, 0, 0), scene);
+          	camera.setPosition(new BABYLON.Vector3(-12, 25, -84));
+          	camera.attachControl(canvas, true);
+         
+          	// lights
+          	var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 0.5, 0), scene);
+        	
+        	/*-----------------------Car Body------------------------------------------*/ 
+        	
+        	//Car Body Material 
+        	var bodyMaterial = new BABYLON.StandardMaterial("body_mat", scene);
+          	bodyMaterial.diffuseColor = new BABYLON.Color3(1.0, 0.25, 0.25);
+          	bodyMaterial.backFaceCulling = false;
+        	
+        	//Array of points for trapezium side of car.
+        	var side = [new BABYLON.Vector3(-4, 2, -2),
+        				new BABYLON.Vector3(4, 2, -2),
+        				new BABYLON.Vector3(5, -2, -2),
+        				new BABYLON.Vector3(-7, -2, -2)				
+        	];
+        	
+        	side.push(side[0]);	//close trapezium
+        	
+        	//Array of points for the extrusion path
+        	var extrudePath = [new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(0, 0, 4)];
+        	
+        	//Create body and apply material
+        	var carBody = BABYLON.MeshBuilder.ExtrudeShape("body", {shape: side, path: extrudePath, cap : BABYLON.Mesh.CAP_ALL}, scene);
+        	carBody.material = bodyMaterial;
+        	/*-----------------------End Car Body------------------------------------------*/
+        	
+        	/*-----------------------Wheel------------------------------------------*/ 
+        	
+        	//Wheel Material 
+        	var wheelMaterial = new BABYLON.StandardMaterial("wheel_mat", scene);
+          	var wheelTexture = new BABYLON.Texture("http://i.imgur.com/ZUWbT6L.png", scene);
+        	wheelMaterial.diffuseTexture = wheelTexture;
+        	
+        	//Set color for wheel tread as black
+        	var faceColors=[];
+        	faceColors[1] = new BABYLON.Color3(0,0,0);
+        	
+        	//set texture for flat face of wheel 
+        	var faceUV =[];
+        	faceUV[0] = new BABYLON.Vector4(0,0,1,1);
+        	faceUV[2] = new BABYLON.Vector4(0,0,1,1);
+        	
+        	//create wheel front inside and apply material
+        	var wheelFI = BABYLON.MeshBuilder.CreateCylinder("wheelFI", {diameter: 3, height: 1, tessellation: 24, faceColors:faceColors, faceUV:faceUV}, scene);
+          	wheelFI.material = wheelMaterial;
+        	  
+        	//rotate wheel so tread in xz plane  
+          	wheelFI.rotate(BABYLON.Axis.X, Math.PI/2, BABYLON.Space.WORLD);
+        	wheelFI.parent = carBody;  
+        	
+        	
+          /*-----------------------End Wheel------------------------------------------*/ 
+          
+          /*------------Create other Wheels as Instances, Parent and Position----------*/
+          var wheelFO = wheelFI.createInstance("FO");
+          wheelFO.parent = carBody;
+          wheelFO.position = new BABYLON.Vector3(-4.5, -2, 2.8);
+          
+          var wheelRI = wheelFI.createInstance("RI");
+          wheelRI.parent = carBody;
+          wheelRI.position = new BABYLON.Vector3(2.5, -2, -2.8);
+          
+          var wheelRO = wheelFI.createInstance("RO");
+          wheelRO.parent = carBody;
+          wheelRO.position = new BABYLON.Vector3(2.5, -2, 2.8);
+          
+          wheelFI.position = new BABYLON.Vector3(-4.5, -2, -2.8);
+          
+          /*------------End Create other Wheels as Instances, Parent and Position----------*/
+          
+          	/*-----------------------Path------------------------------------------*/ 
+        	
+        	// Create array of points to describe the curve
+        	var points = [];
+        	var n = 450; // number of points
+        	var r = 50; //radius
+        	for (var i = 0; i < n + 1; i++) {
+        		points.push( new BABYLON.Vector3((r + (r/5)*Math.sin(8*i*Math.PI/n))* Math.sin(2*i*Math.PI/n), 0, (r + (r/10)*Math.sin(6*i*Math.PI/n)) * Math.cos(2*i*Math.PI/n)));
+        	}	
+        	
+            //Draw the curve
+        	var track = BABYLON.MeshBuilder.CreateLines('track', {points: points}, scene);
+        	track.color = new BABYLON.Color3(0, 0, 0);
+          /*-----------------------End Path------------------------------------------*/ 
+        	
+          /*-----------------------Ground------------------------------------------*/ 	
+          var ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 3*r, height: 3*r}, scene);
+          /*-----------------------End Ground------------------------------------------*/ 	
+          
+          /*----------------Position and Rotate Car at Start---------------------------*/
+          carBody.position.y = 4;
+          carBody.position.z = r;
+          
+          var path3d = new BABYLON.Path3D(points);
+          var normals = path3d.getNormals();
+          var theta = Math.acos(BABYLON.Vector3.Dot(BABYLON.Axis.Z,normals[0]));
+          carBody.rotate(BABYLON.Axis.Y, theta, BABYLON.Space.WORLD); 
+          var startRotation = carBody.rotationQuaternion;
+          /*----------------End Position and Rotate Car at Start---------------------*/
+          
+          /*----------------Animation Loop---------------------------*/
+          var i=0;
+          var t=0;
+          var last_i=0;
+          let rotation_amount_whells= Math.PI/32;
+          let rotation_amount_car=1;
+          scene.registerAfterRender(function() {
+        	 
+             carBody.position.x = points[i].x;
+        	 carBody.position.z = points[i].z;
+        	 wheelFI.rotate(normals[i], rotation_amount_whells, BABYLON.Space.WORLD); 
+        	 wheelFO.rotate(normals[i], rotation_amount_whells, BABYLON.Space.WORLD);
+        	 wheelRI.rotate(normals[i], rotation_amount_whells, BABYLON.Space.WORLD);
+        	 wheelRO.rotate(normals[i], rotation_amount_whells, BABYLON.Space.WORLD);
+        	 
+        	 theta = Math.acos(BABYLON.Vector3.Dot(normals[i],normals[i+1]));
+        	 var dir = BABYLON.Vector3.Cross(normals[i],normals[i+1]).y;
+        	 var dir = dir/Math.abs(dir);
+             
+        	 carBody.rotate(BABYLON.Axis.Y, dir * theta*rotation_amount_car, BABYLON.Space.WORLD);
+        	 
+             last_i=i;
+             t+=0.05;
+            //Way to stop all the animations involving the car
+             if(t>20 && t<40){
+                 i=last_i;
+                 rotation_amount_whells=0;
+                 rotation_amount_car=0;
+        
+             }else{
+        	 i = (i + 1) % (n-1);	//continuous looping
+             rotation_amount_whells=Math.PI/32;
+             rotation_amount_car=1;
+        	 }
+        	 if(i == 0) {
+        		 carBody.rotationQuaternion = startRotation;
+        
+        	 }
+             //after t reach a certain value the animtion stops
+             if(t>60){
+                 i=last_i;
+                 rotation_amount_whells=0;
+                 rotation_amount_car=0;
+                 
+             }
+             //to dissapear or leaving the animation, in this case one of the rear wheels
+             if(t>70){
+                 wheelRI.dispose();
+             }
+          });
+        	 
+         /*----------------End Animation Loop---------------------------*/ 
+        	
+          	return scene;
+        }
+                window.initFunction = async function() {
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene                    
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
