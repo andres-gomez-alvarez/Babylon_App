@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Babylon-JS First one</title>
+    <!-- <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' media='screen' href='main.css'>-->
+    <script src='https://cdn.babylonjs.com/babylon.max.js'></script> 
+
+    <style>
+        #canvas{
+            width:100%;
+            height:100%;
+
+        }
+    </style>   
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        //layout strings commands:
+        const layout=[];
+
+        layout.push("Define View cavascolor White");
+        layout.push("Define View FreeCamera 0 0 -20");
+        layout.push("Define Mesh Queue");// by default the position of them will be harcoded for simplicity,also the color is set
+        layout.push("Define Mesh Carwash");// by default the position of them will be harcoded for simplicity,also the color is set
+        layout.push("Line #1 -5 -5 0 0 -4 0"); // entry point in the system to the start of the queue
+        layout.push("Line #2 0 -4 0 0 0 0");//the start of the queue to server
+        layout.push("Line #3 0 0 0 2 1.5 0");//server to the final point in the system
+        layout.push("Line #4 2 1.5 0 4 20 0");//final point in the system to out of the view in the canvas
+
+        layout.push("Define Path SystemEntry Speed 0"); 
+        layout.push("Segment #1 -5 -5 0 0 -4 0 2");
+        layout.push("End");
+
+        layout.push("Define Path Queue Speed 0");
+        layout.push("Segment #2 0 -4 0 0 0 0 2");
+        layout.push("End");
+
+        layout.push("Define Path Server Speed 0");
+        layout.push("Segment #3 0 0 0 2 1.5 0 2");
+        layout.push("End");
+
+        layout.push("Define Path S-End Speed 0");
+        layout.push("Segment #4 2 1.5 0 4 20 0 2");
+        layout.push("End");
+        layout.push("End");
+
+
+        //trace strings commands:
+        const trace=[];
+
+        trace.push("ti 0");
+        trace.push("set path SystemEntry speed 0.000");
+        trace.push("set path Queue speed 0.000");
+        trace.push("set path Q-S speed 0.000");
+        trace.push("set path S-End speed 0.000");
+        trace.push("ti 3.000");
+        trace.push("create Car car01");
+        trace.push("place car01 on SystemEntry");
+        trace.push("set object car01 speed 200"); //set
+        trace.push("ti 3.15");
+        trace.push("place car01 on Queue");
+        trace.push("set object car01 speed 200");//set
+        trace.push("ti 3.35");
+        trace.push("place car01 on Server");
+        trace.push("ti 6.000");
+        trace.push("create Car car02");
+        trace.push("place car02 on SystemEntry");
+        trace.push("set objecte car02 speed 200");//set
+        trace.push("ti 6.15");
+        trace.push("place car02 on Queue");
+        trace.push("set object car02 speed 200");//set
+        trace.push("place car01 on S-End");
+        trace.push("set object car01 speed 200");//set
+        trace.push("ti 6.350");
+        trace.push("set object car01 speed 500");//set
+        trace.push("place car02 on Server");
+        trace.push("ti 6.400");
+        trace.push("destroy car01");
+        trace.push("ti 9.000");
+        trace.push("place car02 on S-End");
+        trace.push("set object car01 speed 200");//set
+        trace.push("ti 9.150");
+        trace.push("set object car02 speed 500");//set
+        trace.push("ti 9.200");
+        trace.push("destroy car02");
+        trace.push("ti 10.0000");
+        trace.push("end");
+
+       pointsForPath=function(point1,point2){
+        var interpoints=[];
+        var n=250;
+        for(var i=0;i< n+1;i++){
+
+            interpoints.push(new BABYLON.Vector3((point2.x-point1.x)*(i/n)+point1.x,(point2.y-point1.y)*(i/n)+point1.y,(point2.z-point1.z)*(i/n)+point1.z))
+        }
+
+        return interpoints;
+
+       }
+
+        
+        //telling js to get this don
+
+        window.addEventListener("DOMContentLoaded",function(){
+            //Create a canvas element to render the animation
+
+            var canvas=document.getElementById("canvas");
+            
+            // Create an engine to run an animation
+            var engine=new BABYLON.Engine(canvas,true);
+
+            var createScene= function(){
+                //Set the scene:
+                scene=new BABYLON.Scene(engine);
+
+                // Lines and Segments built
+                var Segments=[];
+                var Lines=[];
+                for (var i = 0; i < layout.length; i++) {
+        
+                    var line = layout[i].split(" ");
+
+                    if(line[0]=='Define'){
+                        if(line[1]=='View'){
+                            
+                            if(line[2]=='FreeCamera'){
+
+                                var camera=new BABYLON.FreeCamera('camera',
+                                new BABYLON.Vector3(parseFloat(line[3]),parseFloat(line[4]),parseFloat(line[5])),scene);
+                            
+                                const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0));
+                        
+
+                            }else if(line[2]=='cavascolor'){
+
+                                scene.clearColor=new BABYLON.Color3.White();
+                            }
+
+                        }
+                        else if(line[1]=='Mesh'){
+
+                            if(line[2]=='Queue'){
+                                
+                                var Queue=BABYLON.MeshBuilder.CreatePlane("plane", {height:4, width: 1});
+                                var material = new BABYLON.StandardMaterial(scene);
+                                material.alpha = .8;
+                                material.diffuseColor = new BABYLON.Color3(1, 0, 0);
+                                Queue.material=material;
+                                Queue.position.x=0;
+                                Queue.position.y=-2.6;
+                                Queue.position.z=1;  
+
+                            }
+                            else if(line[2]=='Carwash'){
+
+                                var Carwash=BABYLON.MeshBuilder.CreatePlane("plane", {height:2, width: 2});
+                                var material = new BABYLON.StandardMaterial(scene);
+                                material.alpha = .5;
+                                material.diffuseColor = new BABYLON.Color3(0, 2, 0);
+                                Carwash.material=material;
+                                Carwash.position.x=1;
+                                Carwash.position.y=4;
+                                Carwash.position.z=1;
+
+                            }
+
+
+                        }else{
+                            
+                            var point1=BABYLON.Vector3(parseFloat(line[2]),parseFloat(line[3]),parseFloat(line[4]));
+                            var point2=BABYLON.Vector3(parseFloat(line[5]),parseFloat(line[6]),parseFloat(line[7]));
+                            Segments.push({id:line[1],points:[point1,point2]});
+                            
+                        }
+                    }
+                    else if(line[0]=='Line'){
+
+                        
+
+                            var point1=BABYLON.Vector3(parseFloat(line[2]),parseFloat(line[3]),parseFloat(line[4]));
+                            var point2=BABYLON.Vector3(parseFloat(line[5]),parseFloat(line[6]),parseFloat(line[7]));
+                            Lines.push({id:line[1],points:[point1,point2]});
+
+                    }
+                    else{
+
+                        console.log("End command");
+                    }
+                
+                }
+                
+                //Animation Part
+
+                
+
+                var pathLineMaker=function(n,point1,point2){
+        points=[];
+        
+        if(point1.length==3 && point2.length==3){
+
+        for(var i=0;i< n+1;i++){
+
+            let t=i/(n+1);
+
+            points.push(new BABYLON.Vector3(point1[0]+(point2[0]-point1[0])*t,
+            point1[1]+(point2[1]-point1[1])*t,
+            point1[2]+(point2[2]-point1[2])*t));
+            
+            
+
+        }
+        var track = BABYLON.MeshBuilder.CreateLines('track', {points: points}, scene);
+	    track.color = new BABYLON.Color3(0, 0, 1);
+        return points
+
+        }else{
+
+            return null;
+        }
+    }
+
+    //path construction
+    let numberPoints=400;
+    var point1=[-7,-5,0];
+    var point2=[0,-4,0];
+    var point3=[0,-2.6,0];
+    var point4=[1,2,0];
+    var point5=[1,4,0];
+    var point6=[8,8,0];
+    var point7=[8,20,0];
+    
+    
+    var path1_points=pathLineMaker(numberPoints,point1,point2);
+
+    var path2_points=pathLineMaker(numberPoints,point2,point3);
+
+    var path3_points=pathLineMaker(numberPoints,point3,point4);
+
+    var path4_points=pathLineMaker(numberPoints,point4,point5);
+
+    var path5_points=pathLineMaker(numberPoints,point5,point6);
+
+    var path6_points=pathLineMaker(numberPoints,point6,point7);
+
+    
+    //points.push(path1_points,path2_points,path3_points,path4_points,path5_points,path6_points);
+
+    var convertingPath=function(path,speed){
+        
+        cpos=[];
+
+        var deltaI = 0;
+        var drag = Math.round(1 / speed);
+        var pace = Math.round(speed);
+        var nbPoints = path.length;
+        
+        //store looped positions and orientations
+        var cpos = [];
+        var objectpos = BABYLON.Vector3.Zero();
+        
+        var i=0;
+        while (i < nbPoints) {
+            if(speed >= 1) {
+                
+                cpos.push(path[i]);
+                
+                i += pace;
+            }
+            else {
+                objectpos.x = path[i].x + deltaI * (path[(i + 1) % nbPoints].x - path[i]. x) / drag;
+                objectpos.y = path[i].y + deltaI * (path[(i + 1) % nbPoints].y - path[i]. y) / drag;
+                objectpos.z = path[i].z + deltaI * (path[(i + 1) % nbPoints].z - path[i]. z) / drag;
+
+                cpos.push(objectpos.clone());
+
+                i = (Math.floor(i + (deltaI + 1) / drag))
+                deltaI = (deltaI + 1) % drag; 
+            }
+        }
+
+
+        return cpos;
+
+    }
+
+   
+
+    var joiningArrays=function(arr1,arr2){
+        
+
+        for(var i=0;i<arr2.length;i++){
+            arr1.push(arr2[i]);
+
+        }
+
+        return arr1;
+    }    
+    //  var path_01=path1_points;
+    //  var points=joiningArrays(path1_points,path2_points);
+
+    // points=joiningArrays(points,path3_points);
+    // points=joiningArrays(points,path4_points);
+    // points=joiningArrays(points,path5_points);
+    // points=joiningArrays(points,path6_points);
+    
+
+    var createCar=function(point){
+        var sphere=BABYLON.MeshBuilder.CreateSphere("car", {diameter: 0.5, segments: 32}, scene);
+        sphere.position = new BABYLON.Vector3(point[0], point[1], point[2]);
+
+        return sphere;
+
+    }
+   // var car01=createCar(point1);
+    //car01.position=new BABYLON.Vector3.Zero;
+
+    var car02=createCar(point1);
+    var car01=createCar(point1);
+    var car03=createCar(point2);
+
+
+    // var time=0;
+    // //let i=0;
+    // //var limit=12000;
+    // var cars=[];
+    // var nsteps=points.length;
+    // scene.registerBeforeRender(function(){
+
+    //         car02.position=points[time];                   
+
+    //                 // if(time==60){
+
+    //                 //              var car01=createCar(point1);
+    //                 //              cars.push(car01);
+    //                 // }
+
+    //                 // if(cars.length!=0){
+    //                 //      var car=cars[0];
+    //                 //      car.position=points[time-60];
+    //                 // }
+    //              time+=1;
+    //              time%=nsteps;
+
+
+    //             });
+
+    function move(object,path){
+        
+        var finish=false;
+        var i=0;
+        scene.registerBeforeRender(function(){
+
+            if(i<path.length){
+                object.position=path[i];
+            }else{
+                object.position=path[path.length-1];
+                finish=true;
+            }
+            
+
+            i+=1
+           
+            
+
+        });
+    }
+
+    function movespeed(object,path,speed){
+
+        var speedpath=convertingPath(path,speed);
+        var finish=false;
+        var i=0;
+        scene.registerBeforeRender(function(){
+
+            if(i<speedpath.length){
+                object.position=speedpath[i];
+            }else{
+                object.position=speedpath[speedpath.length-1];
+                finish=true;
+            }
+            
+
+            i+=1
+           
+            
+
+        });
+
+
+    }
+
+    function stop(object,path,time){
+
+        var i=0;
+        var finish=false;
+        scene.registerBeforeRender(function(){
+
+            if(i<time){
+                object.position=path[0];
+            }else{
+                finish=true;
+            }
+            
+
+            i+=1
+           
+            
+
+        });
+    }
+     function complete(object,path){
+        
+        var finish=false;
+        var i=0;
+        scene.registerBeforeRender(function(){
+
+            if(i<path.length){
+                object.position=path[i];
+            }else{
+                object.position=path[path.length-1];
+                finish=true;
+                object.dispose();
+                
+            }
+            
+
+            i+=1        
+
+        });
+    }
+    //
+    movespeed(car02,path1_points,1);
+    movespeed(car01,path1_points,2);
+    complete(car03,path2_points);
+
+
+
+
+                return scene;
+
+
+            }
+            var scene=createScene();
+            engine.runRenderLoop(function(){
+                scene.render();
+                
+            });
+
+        });
+        //var canvas=
+    </script>
+</body>
+</html>
